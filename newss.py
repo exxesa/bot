@@ -8,7 +8,7 @@ from aiogram.client.default import DefaultBotProperties
 
 from telethon import TelegramClient
 from telethon.tl.functions.messages import SearchRequest
-from telethon.tl.types import InputPeerEmpty
+from telethon.tl.types import InputMessagesFilterEmpty
 
 
 # ================= НАСТРОЙКИ =================
@@ -156,44 +156,37 @@ async def search_news(message: Message, data: dict, uid: int):
 
     for channel in CHANNELS:
         if uid not in active_search:
-            return  # ⛔ мгновенный стоп
+            return
 
         try:
-            result = await telethon(
-                SearchRequest(
-                    peer=channel,
-                    q=keyword,
-                    filter=InputPeerEmpty(),
-                    min_date=since,
-                    max_date=None,
-                    offset_id=0,
-                    add_offset=0,
-                    limit=MAX_RESULTS,
-                    max_id=0,
-                    min_id=0,
-                    hash=0
-                )
-            )
-
-            for msg in result.messages:
+            async for msg in telethon.iter_messages(
+                channel,
+                search=keyword,
+                limit=MAX_RESULTS
+            ):
                 if uid not in active_search:
                     return
 
-                if not msg.message:
+                if not msg.text:
+                    continue
+
+                if msg.date < since:
                     continue
 
                 link = f"https://t.me/{channel}/{msg.id}"
+
                 await message.answer(
                     f"📰 <b>{channel}</b>\n"
-                    f"{msg.message[:300]}...\n\n"
+                    f"{msg.text[:300]}...\n\n"
                     f"🔗 <a href='{link}'>Открыть новость</a>"
                 )
+
                 found += 1
 
         except Exception as e:
-            print(f"❌ Ошибка {channel}: {e}")
+            print(f"Ошибка {channel}: {e}")
 
-    if uid in active_search and found == 0:
+    if found == 0:
         await message.answer("😕 Ничего не найдено")
 
 
