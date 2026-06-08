@@ -1,2 +1,2 @@
-aiogram==3.*
-telethonaiogram==3.*
+aiogram>=3.0,<4.0
+telethon>=1.36.0
